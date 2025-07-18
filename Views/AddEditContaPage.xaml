@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControleDeContas.Views.AddEditContaPage"
+             xmlns:viewmodels="clr-namespace:ControleDeContas.ViewModels"
+             x:DataType="viewmodels:AddEditContaViewModel"
+             Title="Adicionar/Editar Conta">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            <Label Text="Nome da Conta" />
+            <Entry Text="{Binding Nome}" Placeholder="Ex: Aluguel, Netflix..." />
+
+            <Label Text="Valor (Padrão para recorrentes)" />
+            <Entry Text="{Binding Valor}" Placeholder="150.50" Keyboard="Numeric" />
+
+            <Label Text="Categoria" />
+            <Picker Title="Selecione uma categoria"
+                    ItemsSource="{Binding Categorias}"
+                    SelectedItem="{Binding CategoriaSelecionada}" />
+
+            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                <CheckBox IsChecked="{Binding IsRecorrente}" />
+                <Label Text="É uma conta recorrente?" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <VerticalStackLayout IsVisible="{Binding IsContaUnica}">
+                <Label Text="Data de Vencimento" />
+                <DatePicker Date="{Binding Vencimento}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout IsVisible="{Binding IsRecorrente}">
+                <Label Text="Dia do Vencimento (1 a 31)" />
+                <Entry Text="{Binding DiaVencimento}" />
+            </VerticalStackLayout>
+
+            <Button Text="Salvar Conta"
+                    Command="{Binding SalvarCommand}"
+                    HorizontalOptions="Fill"
+                    Margin="0,20,0,0"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

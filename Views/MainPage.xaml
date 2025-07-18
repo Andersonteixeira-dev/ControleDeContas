@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControleDeContas.Views.MainPage"
+             xmlns:models="clr-namespace:ControleDeContas.Models"
+             xmlns:viewmodels="clr-namespace:ControleDeContas.ViewModels"
+             xmlns:converters="clr-namespace:ControleDeContas.Converters"
+             x:DataType="viewmodels:MainViewModel"
+             Title="Minhas Contas"
+             BackgroundColor="#f4f7f6">
+
+    <ContentPage.Resources>
+        <Style TargetType="Border" x:Key="CardStyle">
+            <Setter Property="Margin" Value="10,5" />
+            <Setter Property="Padding" Value="15" />
+            <Setter Property="Stroke" Value="LightGray" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 8,8,8,8" />
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="Shadow">
+                <Shadow Brush="Black" Offset="5,5" Radius="10" Opacity="0.1" />
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger TargetType="Border" Binding="{Binding Status}" Value="Pago">
+                    <Setter Property="BackgroundColor" Value="#E8F5E9" />
+                </DataTrigger>
+                <DataTrigger TargetType="Border" Binding="{Binding Status}" Value="NA">
+                    <Setter Property="BackgroundColor" Value="#ECEFF1" />
+                    <Setter Property="Opacity" Value="0.7" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid>
+        <Grid RowDefinitions="Auto, Auto, *">
+
+            <HorizontalStackLayout Grid.Row="0" HorizontalOptions="Center" VerticalOptions="Center" Padding="10">
+                <Button Text="&lt;" Command="{Binding GoToMesAnteriorCommand}"/>
+                <Label Text="{Binding DataCorrente, StringFormat='{0:MMMM \\ yyyy}'}" VerticalOptions="Center" HorizontalOptions="Center" FontSize="20" FontAttributes="Bold" Padding="10,0"/>
+                <Button Text="&gt;" Command="{Binding GoToMesSeguinteCommand}"/>
+            </HorizontalStackLayout>
+
+            <Border Grid.Row="1" Margin="10,0" Padding="10" Style="{StaticResource CardStyle}">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                    <VerticalStackLayout Grid.Column="0" HorizontalOptions="Center">
+                        <Label Text="Pendente" TextColor="#dc3545" FontAttributes="Bold"/>
+                        <Label Text="{Binding TotalPendente, StringFormat='{0:C}'}" FontSize="16"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                        <Label Text="Pago" TextColor="#28a745" FontAttributes="Bold"/>
+                        <Label Text="{Binding TotalPago, StringFormat='{0:C}'}" FontSize="16"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
+                        <Label Text="N/A" TextColor="#6c757d" FontAttributes="Bold"/>
+                        <Label Text="{Binding TotalNA, StringFormat='{0:C}'}" FontSize="16"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <CollectionView Grid.Row="2" ItemsSource="{Binding ContasDoMes}" EmptyView="Nenhuma conta para este mês." Margin="0,10,0,0">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ContaDisplay">
+                        <Border Style="{StaticResource CardStyle}">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="15">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <HorizontalStackLayout VerticalOptions="Center" Spacing="5">
+                                        <Label Text="{Binding Nome}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                                        <Label Text="🔄" IsVisible="{Binding Tipo, Converter={StaticResource IsRecorrenteConverter}}" FontSize="16" VerticalOptions="Center" TextColor="Gray" ToolTipProperties.Text="Conta Recorrente"/>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Categoria}" FontSize="12" FontAttributes="Italic" TextColor="DarkSlateGray" />
+                                    <Label Text="{Binding Valor, StringFormat='Valor: {0:C}'}" FontSize="16" />
+                                    <Label Text="{Binding Vencimento, StringFormat='Vence em: {0:dd/MM/yyyy}'}" FontSize="14" TextColor="Gray"/>
+                                    <Label IsVisible="{Binding AcaoRealizada}" Text="{Binding StatusDetalhado}" TextColor="DarkGreen" FontSize="12" FontAttributes="Italic"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Start">
+                                    <Button Text="Pagar" IsVisible="{Binding IsPendente}" BackgroundColor="#28a745" TextColor="White" Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=PagarContaCommand}" CommandParameter="{Binding .}"/>
+                                    <Button Text="N/A" IsVisible="{Binding IsRecorrentePendente}" BackgroundColor="#6c757d" TextColor="White" Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=MarcarNaoAplicarCommand}" CommandParameter="{Binding .}"/>
+                                    <Button Text="Desfazer" IsVisible="{Binding AcaoRealizada}" BackgroundColor="#ffc107" TextColor="Black" Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=DesfazerAcaoCommand}" CommandParameter="{Binding .}"/>
+
+                                    <Button Text="Editar" IsVisible="{Binding IsPendente}" BackgroundColor="#007AFF" TextColor="White" Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=GoToEditarContaCommand}" CommandParameter="{Binding .}"/>
+
+                                    <Button Text="Excluir" BackgroundColor="#dc3545" TextColor="White" Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=ExcluirContaCommand}" CommandParameter="{Binding .}"/>
+                                </VerticalStackLayout>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="80" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </Grid>
+
+        <Button Text="+"
+                Command="{Binding GoToAdicionarContaCommand}"
+                FontSize="30" FontAttributes="Bold"
+                CornerRadius="28" HeightRequest="56" WidthRequest="56"
+                HorizontalOptions="Center" VerticalOptions="End"                
+                Margin="0,0,0,20"/>
+
+    </Grid>
+</ContentPage>

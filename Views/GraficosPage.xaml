@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControleDeContas.Views.GraficosPage"
+             xmlns:viewmodels="clr-namespace:ControleDeContas.ViewModels"
+             xmlns:micro="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
+             x:DataType="viewmodels:GraficosViewModel"
+             Title="Relatórios"
+             BackgroundColor="#f4f7f6">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="10" Spacing="25">
+
+            <Label Text="Gastos por Categoria (Mês Atual)"
+                   FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,0,0,15"/>
+
+            <micro:ChartView Chart="{Binding GastosPorCategoriaChart}" HeightRequest="350" />
+
+            <BoxView HeightRequest="1" Color="LightGray" />
+
+            <Label Text="Histórico de Gastos (Últimos 6 Meses)"
+                   FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,15,0,15"/>
+
+            <micro:ChartView Chart="{Binding HistoricoGastosChart}" HeightRequest="300" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
