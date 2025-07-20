@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using ControleDeContas.Models;
 using ControleDeContas.Services;
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -9,10 +10,12 @@ namespace ControleDeContas.ViewModels
 {
     [QueryProperty(nameof(ContaId), "Id")]
     [QueryProperty(nameof(TipoConta), "Tipo")]
+    [QueryProperty(nameof(DataContexto), "DataContexto")]
     public partial class AddEditContaViewModel : ObservableObject
     {
         [ObservableProperty] private int _contaId;
         [ObservableProperty] private string _tipoConta;
+        [ObservableProperty] private DateTime _dataContexto = DateTime.Now;
         private ContaUnica _contaUnicaEdit;
         private ContaRecorrente _contaRecorrenteEdit;
 
@@ -21,9 +24,10 @@ namespace ControleDeContas.ViewModels
         [ObservableProperty] private DateTime _vencimento = DateTime.Now;
         [ObservableProperty] private int _diaVencimento = 1;
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsContaUnica))] private bool _isRecorrente;
+        [ObservableProperty] private string _categoriaSelecionada;
+
         public bool IsContaUnica => !IsRecorrente;
         public ObservableCollection<string> Categorias { get; }
-        [ObservableProperty] private string _categoriaSelecionada;
 
         public AddEditContaViewModel()
         {
@@ -32,9 +36,9 @@ namespace ControleDeContas.ViewModels
 
         public async Task CarregarContaAsync()
         {
-            if (ContaId == 0) { IsRecorrente = (TipoConta == "Recorrente"); return; }
+            if (ContaId == 0) { IsRecorrente = TipoConta == "Recorrente"; return; }
 
-            IsRecorrente = (TipoConta == "Recorrente");
+            IsRecorrente = TipoConta == "Recorrente";
             if (IsRecorrente)
             {
                 _contaRecorrenteEdit = await DatabaseService.GetContaRecorrenteByIdAsync(ContaId);
@@ -64,63 +68,61 @@ namespace ControleDeContas.ViewModels
         {
             if (string.IsNullOrWhiteSpace(Nome) || string.IsNullOrWhiteSpace(CategoriaSelecionada))
             {
-                await Shell.Current.DisplayAlert("Erro", "O nome e a categoria da conta são obrigatórios.", "OK");
+                await Shell.Current.DisplayAlert("Erro", "Nome e categoria são obrigatórios.", "OK");
                 return;
             }
 
             if (ContaId == 0) // Criar
             {
                 if (IsRecorrente)
-                    await DatabaseService.SaveContaRecorrenteAsync(new ContaRecorrente { Nome = Nome, ValorPadrao = Valor, DiaVencimento = DiaVencimento, Categoria = CategoriaSelecionada, Ativa = true, DataCriacao = DateTime.Now });
+                {
+                    var dataCriacaoNormalizada = new DateTime(DataContexto.Year, DataContexto.Month, 1);
+                    await DatabaseService.SaveContaRecorrenteAsync(new ContaRecorrente { Nome = Nome, ValorPadrao = Valor, DiaVencimento = DiaVencimento, Categoria = CategoriaSelecionada, Ativa = true, DataCriacao = dataCriacaoNormalizada });
+                }
                 else
+                {
                     await DatabaseService.SaveContaUnicaAsync(new ContaUnica { Nome = Nome, Valor = Valor, Vencimento = Vencimento, Categoria = CategoriaSelecionada });
+                }
             }
             else // Editar
             {
                 bool tipoOriginalEraRecorrente = (TipoConta == "Recorrente");
-                if (tipoOriginalEraRecorrente == IsRecorrente) // O tipo não mudou
+                if (tipoOriginalEraRecorrente && IsRecorrente)
                 {
-                    if (IsRecorrente)
+                    string acao = await Shell.Current.DisplayActionSheet(
+                        "Como aplicar esta alteração?",
+                        "Cancelar",
+                        null,
+                        "Alterar só a partir deste mês",
+                        "Corrigir para todos os meses");
+
+                    if (acao == "Alterar só a partir deste mês")
+                    {
+                        var primeiroDiaDoMesContexto = new DateTime(DataContexto.Year, DataContexto.Month, 1);
+                        _contaRecorrenteEdit.DataEncerramento = primeiroDiaDoMesContexto.AddDays(-1);
+                        _contaRecorrenteEdit.Ativa = false;
+                        await DatabaseService.SaveContaRecorrenteAsync(_contaRecorrenteEdit);
+
+                        var novaConta = new ContaRecorrente { Nome = Nome, ValorPadrao = Valor, DiaVencimento = DiaVencimento, Categoria = CategoriaSelecionada, Ativa = true, DataCriacao = primeiroDiaDoMesContexto };
+                        await DatabaseService.SaveContaRecorrenteAsync(novaConta);
+                    }
+                    else if (acao == "Corrigir para todos os meses")
                     {
                         _contaRecorrenteEdit.Nome = Nome;
-                        _contaRecorrenteEdit.ValorPadrao = Valor; // Altera o valor base
+                        _contaRecorrenteEdit.ValorPadrao = Valor;
                         _contaRecorrenteEdit.DiaVencimento = DiaVencimento;
                         _contaRecorrenteEdit.Categoria = CategoriaSelecionada;
                         await DatabaseService.SaveContaRecorrenteAsync(_contaRecorrenteEdit);
-
-                        // LÓGICA CORRIGIDA: Apaga os overrides futuros para que o novo valor base seja aplicado
-                        string mesAnoDaEdicao = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy-MM");
-                        await DatabaseService.DeleteFutureOverridesAsync(_contaRecorrenteEdit.Id, mesAnoDaEdicao);
                     }
-                    else
-                    {
-                        _contaUnicaEdit.Nome = Nome;
-                        _contaUnicaEdit.Valor = Valor;
-                        _contaUnicaEdit.Vencimento = Vencimento;
-                        _contaUnicaEdit.Categoria = CategoriaSelecionada;
-                        await DatabaseService.SaveContaUnicaAsync(_contaUnicaEdit);
-                    }
+                    else { return; }
                 }
-                else // O tipo mudou
+                else if (_contaUnicaEdit != null)
                 {
-                    if (IsRecorrente)
-                    {
-                        // Cria uma nova conta recorrente
-                        await DatabaseService.SaveContaRecorrenteAsync(new ContaRecorrente { Nome = Nome, ValorPadrao = Valor, DiaVencimento = DiaVencimento, Categoria = CategoriaSelecionada, Ativa = true, DataCriacao = DateTime.Now });
-                        // Apaga a conta única original
-                        if (_contaUnicaEdit != null) await DatabaseService.DeleteContaUnicaAsync(_contaUnicaEdit);
-                    }
-                    else
-                    {
-                        // Cria uma nova conta única
-                        await DatabaseService.SaveContaUnicaAsync(new ContaUnica { Nome = Nome, Valor = Valor, Vencimento = Vencimento, Categoria = CategoriaSelecionada });
-                        // Inativa a conta recorrente original para preservar o histórico
-                        if (_contaRecorrenteEdit != null)
-                        {
-                            _contaRecorrenteEdit.Ativa = false;
-                            await DatabaseService.SaveContaRecorrenteAsync(_contaRecorrenteEdit);
-                        }
-                    }
+                    _contaUnicaEdit.Nome = Nome;
+                    _contaUnicaEdit.Valor = Valor;
+                    _contaUnicaEdit.Vencimento = Vencimento;
+                    _contaUnicaEdit.Categoria = CategoriaSelecionada;
+                    await DatabaseService.SaveContaUnicaAsync(_contaUnicaEdit);
                 }
             }
             await Shell.Current.GoToAsync("..");

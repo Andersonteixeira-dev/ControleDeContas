@@ -1,4 +1,5 @@
 ﻿using SQLite;
+using System; // Adicionado para usar o DateTime
 
 namespace ControleDeContas.Models
 {
@@ -11,6 +12,9 @@ namespace ControleDeContas.Models
         public int DiaVencimento { get; set; }
         public string Categoria { get; set; }
         public bool Ativa { get; set; } = true;
-        public DateTime DataCriacao { get; set; } // <-- NOVA PROPRIEDADE
+        public DateTime DataCriacao { get; set; }
+
+        // --- PROPRIEDADE QUE FALTAVA ---
+        public DateTime? DataEncerramento { get; set; } // Marca o fim da vigência
     }
 }

@@ -1,27 +1,60 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="ControleDeContas.Views.GraficosPage"
+             xmlns:microcharts="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
              xmlns:viewmodels="clr-namespace:ControleDeContas.ViewModels"
-             xmlns:micro="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
+             xmlns:models="clr-namespace:ControleDeContas.Models"
+             xmlns:converters="clr-namespace:ControleDeContas.Converters"
              x:DataType="viewmodels:GraficosViewModel"
-             Title="Relatórios"
-             BackgroundColor="#f4f7f6">
+             x:Class="ControleDeContas.Views.GraficosPage"
+             Title="Relatórios do Mês">
+    <ContentPage.Resources>
+        <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+    </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="10" Spacing="25">
+        <VerticalStackLayout Spacing="15" Padding="10">
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10" Padding="10">
+                <Button Text="&lt;" Command="{Binding GoToMesAnteriorCommand}" />
+                <Label Text="{Binding DataCorrente, StringFormat='{0:MMMM yyyy}'}" FontSize="Large" VerticalOptions="Center"/>
+                <Button Text=">" Command="{Binding GoToMesSeguinteCommand}" />
+            </HorizontalStackLayout>
 
-            <Label Text="Gastos por Categoria (Mês Atual)"
-                   FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,0,0,15"/>
+            <Border Stroke="#E0E0E0" StrokeThickness="1" Padding="15" StrokeShape="RoundRectangle(10)" IsVisible="{Binding TemDadosParaExibir}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Total Gasto no Mês" HorizontalOptions="Center"/>
+                    <Label Text="{Binding TotalGastoNoMes, StringFormat='{0:C}'}" FontSize="Header" FontAttributes="Bold" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Border>
 
-            <micro:ChartView Chart="{Binding GastosPorCategoriaChart}" HeightRequest="350" />
+            <Label Text="Distribuição por Categoria" FontSize="Medium" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,15,0,0"/>
 
-            <BoxView HeightRequest="1" Color="LightGray" />
+            <Grid HeightRequest="250" IsVisible="{Binding TemDadosParaExibir}">
+                <microcharts:ChartView Chart="{Binding PizzaChart}" />
+            </Grid>
 
-            <Label Text="Histórico de Gastos (Últimos 6 Meses)"
-                   FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,15,0,15"/>
+            <Label Text="Nenhum gasto pago registrado neste mês." HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding TemDadosParaExibir, Converter={StaticResource InvertedBoolConverter}}"/>
 
-            <micro:ChartView Chart="{Binding HistoricoGastosChart}" HeightRequest="300" />
+            <CollectionView ItemsSource="{Binding LegendaPizza}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:CategoriaChartItem">
+                        <Grid ColumnDefinitions="Auto, *, Auto" Padding="10,5" ColumnSpacing="10">
+                            <BoxView Grid.Column="0" Color="{Binding Cor}" WidthRequest="15" HeightRequest="15" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" Text="{Binding Categoria}" VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="8">
+                                <Label Text="{Binding ValorFormatado}" FontAttributes="Bold" VerticalOptions="Center"/>
+                                <Label Text="{Binding PercentagemFormatada}" TextColor="Gray" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <BoxView HeightRequest="1" Color="#DDDDDD" Margin="0,20"/>
+
+            <Label Text="Histórico de Gastos (Últimos 6 Meses)" FontSize="Medium" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,15,0,0"/>
+
+            <microcharts:ChartView Chart="{Binding BarChart}" HeightRequest="300" />
 
         </VerticalStackLayout>
     </ScrollView>
